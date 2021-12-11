@@ -27,14 +27,14 @@
          (form
            `(define ,name
               (case-lambda
-                ((d)
-                 ,(byte-getter-form (typeof spec field) 'd
+                ((vec)
+                 ,(byte-getter-form (typeof spec field) 'vec
                                     (offsetof spec field) end))
-                ((d val)
-                 (let ((d (bytevector-copy d)))
-                   ,(byte-setter-form (typeof spec field) 'd
+                ((vec val)
+                 (let ((vec (bytevector-copy vec)))
+                   ,(byte-setter-form (typeof spec field) 'vec
                                       (offsetof spec field) 'val end)
-                   d))))))
+                   vec))))))
     (if xport?
       `(begin ,form (export ,name))
       form)))
@@ -43,9 +43,9 @@
   (let* ((name
            (symbol-append name '?))
          (form
-           `(define (,name s)
-              (and (bytevector? s)
-                   (= (bytevector-length s)
+           `(define (,name vec)
+              (and (bytevector? vec)
+                   (= (bytevector-length vec)
                       ,(sizeof spec))))))
     (if xport?
       `(begin ,form (export ,name))
@@ -56,12 +56,12 @@
            (symbol-append 'make- name))
          (form
            `(define ,(cons name (fields spec))
-              (let ((s (make-bytevector ,(sizeof spec) 0)))
+              (let ((vec (make-bytevector ,(sizeof spec) 0)))
                 ,@(map (lambda (field)
-                        (byte-setter-form (typeof spec field) 's
+                        (byte-setter-form (typeof spec field) 'vec
                                           (offsetof spec field) field end))
                       (fields spec))
-                s))))
+                vec))))
     (if xport?
       `(begin ,form (export ,name))
       form)))

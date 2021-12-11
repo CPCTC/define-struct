@@ -62,17 +62,45 @@
       `(begin ,form (export ,membership-name))
       form)))
 
-(define (def-constructor name spec end xport?)
+;; (define-struct foo ((x u32) (y u32)))
+
+;; (make-foo (x 4) (y 7)) =>
+;; (let ((vec (make-bytevector 8 0)))
+;;   (foo.x! vec 4)
+;;   (foo.y! vec 7)
+;;   vec)
+
+;; (def-constructor 'foo foo-spec 'little #f) =>
+;; (define-syntax make-foo
+;;   (lambda (syntax)
+;;     (datum->syntax syntax)
+;;       (match (syntax->datum syntax)
+;;         ((_ . inits)
+;;           `(let ((vec (make-bytevector 8 0)))
+;;              ,@(map (lambda (init)
+;;                       (match init ((field val)
+;;                         (list (symbol-append 'foo '. field '!) 'vec val))))
+;;                     inits)
+;;              vec)))))
+
+(define (def-constructor name spec xport?)
   (let* ((constructor-name
            (symbol-append 'make- name))
          (form
-           `(define ,(cons constructor-name (fields spec))
-              (let ((vec (make-bytevector ,(sizeof spec) 0)))
-                ,@(map (lambda (field)
-                        (byte-setter-form (typeof spec field) 'vec
-                                          (offsetof spec field) field end))
-                      (fields spec))
-                vec))))
+           (list 'define-syntax constructor-name
+             (list 'lambda '(syntax)
+               (list 'datum->syntax 'syntax
+                 (list 'match '(syntax->datum syntax)
+                   (list '(_ . inits)
+                     (list 'quasiquote
+                       (list 'let `((vec (make-bytevector ,(sizeof spec) 0)))
+                         (list 'unquote-splicing
+                           `(map (lambda (init)
+                                   (match init ((field val)
+                                     (list (symbol-append ',name '. field '!)
+                                           'vec val))))
+                                 inits))
+                         'vec)))))))))
     (if xport?
       `(begin ,form (export ,constructor-name))
       form)))
@@ -86,7 +114,7 @@
                                 (endianness (native-endianness)))
            (let ((spec (membs->spec membs)))
              (cons* 'begin
-               (def-constructor name spec endianness export?)
+               (def-constructor name spec export?)
                (def-membership name spec export?)
                (fold-left
                  (lambda (a field)

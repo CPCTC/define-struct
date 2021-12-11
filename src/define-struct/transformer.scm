@@ -22,10 +22,10 @@
                    (cons n end)))))
 
 (define (def-accessor name field spec end xport?)
-  (let* ((name
+  (let* ((accessor-name
            (symbol-append name '. field))
          (form
-           `(define ,name
+           `(define ,accessor-name
               (case-lambda
                 ((vec)
                  ,(byte-getter-form (typeof spec field) 'vec
@@ -36,26 +36,26 @@
                                       (offsetof spec field) 'val end)
                    vec))))))
     (if xport?
-      `(begin ,form (export ,name))
+      `(begin ,form (export ,accessor-name))
       form)))
 
 (define (def-membership name spec xport?)
-  (let* ((name
+  (let* ((membership-name
            (symbol-append name '?))
          (form
-           `(define (,name vec)
+           `(define (,membership-name vec)
               (and (bytevector? vec)
                    (= (bytevector-length vec)
                       ,(sizeof spec))))))
     (if xport?
-      `(begin ,form (export ,name))
+      `(begin ,form (export ,membership-name))
       form)))
 
 (define (def-constructor name spec end xport?)
-  (let* ((name
+  (let* ((constructor-name
            (symbol-append 'make- name))
          (form
-           `(define ,(cons name (fields spec))
+           `(define ,(cons constructor-name (fields spec))
               (let ((vec (make-bytevector ,(sizeof spec) 0)))
                 ,@(map (lambda (field)
                         (byte-setter-form (typeof spec field) 'vec
@@ -63,7 +63,7 @@
                       (fields spec))
                 vec))))
     (if xport?
-      `(begin ,form (export ,name))
+      `(begin ,form (export ,constructor-name))
       form)))
 
 (define transformer

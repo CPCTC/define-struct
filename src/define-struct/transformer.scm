@@ -3,6 +3,7 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 optargs)
   #:use-module (rnrs bytevectors)
+  #:use-module (rnrs lists)
   #:export (transformer))
 
 (define (byte-getter-form type vec k e)
@@ -21,6 +22,17 @@
                    end
                    (cons n end)))))
 
+(define (def-mutator name field spec end xport?)
+  (let* ((name
+           (symbol-append name '. field '!))
+         (form
+           `(define (,name vec val)
+              ,(byte-setter-form (typeof spec field) 'vec
+                                 (offsetof spec field) 'val end))))
+    (if xport?
+      `(begin ,form (export ,name))
+      form)))
+
 (define (def-accessor name field spec end xport?)
   (let* ((accessor-name
            (symbol-append name '. field))
@@ -32,8 +44,7 @@
                                     (offsetof spec field) end))
                 ((vec val)
                  (let ((vec (bytevector-copy vec)))
-                   ,(byte-setter-form (typeof spec field) 'vec
-                                      (offsetof spec field) 'val end)
+                   (,(symbol-append name '. field '!) vec val)
                    vec))))))
     (if xport?
       `(begin ,form (export ,accessor-name))
@@ -77,6 +88,10 @@
              (cons* 'begin
                (def-constructor name spec endianness export?)
                (def-membership name spec export?)
-               (map (lambda (field)
-                      (def-accessor name field spec endianness export?))
-                    (fields spec))))))))))
+               (fold-left
+                 (lambda (a field)
+                   (cons* (def-mutator name field spec endianness export?)
+                          (def-accessor name field spec endianness export?)
+                          a))
+                 '()
+                 (fields spec))))))))))

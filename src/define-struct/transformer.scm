@@ -16,8 +16,9 @@
                   (eq? type 's8))
             '()
             (list
-              `(endianness ,e)))))
-    (cons* (symbol-append 'bytevector- type (if getter? '-ref '-set!))
+              `((@ (rnrs bytevectors) endianness) ,e)))))
+    (cons* `(@ (rnrs bytevectors)
+               ,(symbol-append 'bytevector- type (if getter? '-ref '-set!)))
            vec k (if getter?
                    end
                    (cons n end)))))
@@ -43,7 +44,7 @@
                  ,(byte-getter-form (typeof spec field) 'vec
                                     (offsetof spec field) end))
                 ((vec val)
-                 (let ((vec (bytevector-copy vec)))
+                 (let ((vec ((@ (rnrs bytevectors) bytevector-copy) vec)))
                    (,(symbol-append name '. field '!) vec val)
                    vec))))))
     (if xport?
@@ -55,8 +56,8 @@
            (symbol-append name '?))
          (form
            `(define (,membership-name vec)
-              (and (bytevector? vec)
-                   (= (bytevector-length vec)
+              (and ((@ (rnrs bytevectors) bytevector?) vec)
+                   (= ((@ (rnrs bytevectors) bytevector-length) vec)
                       ,(sizeof spec))))))
     (if xport?
       `(begin ,form (export ,membership-name))
@@ -65,7 +66,7 @@
 ;; (define-struct foo ((x u32) (y u32)))
 
 ;; (make-foo (x 4) (y 7)) =>
-;; (let ((vec (make-bytevector 8 0)))
+;; (let ((vec ((@ (rnrs bytevectors) make-bytevector) 8 0)))
 ;;   (foo.x! vec 4)
 ;;   (foo.y! vec 7)
 ;;   vec)
@@ -74,11 +75,11 @@
 ;; (define-syntax make-foo
 ;;   (lambda (syntax)
 ;;     (datum->syntax syntax)
-;;       (match (syntax->datum syntax)
+;;       ((@ (ice-9 match) match) (syntax->datum syntax)
 ;;         ((_ . inits)
-;;           `(let ((vec (make-bytevector 8 0)))
+;;           `(let ((vec ((@ (rnrs bytevectors) make-bytevector) 8 0)))
 ;;              ,@(map (lambda (init)
-;;                       (match init ((field val)
+;;                       ((@ (ice-9 match) match) init ((field val)
 ;;                         (list (symbol-append 'foo '. field '!) 'vec val))))
 ;;                     inits)
 ;;              vec)))))
@@ -90,13 +91,14 @@
            (list 'define-syntax constructor-name
              (list 'lambda '(syntax)
                (list 'datum->syntax 'syntax
-                 (list 'match '(syntax->datum syntax)
+                 (list '(@ (ice-9 match) match) '(syntax->datum syntax)
                    (list '(_ . inits)
                      (list 'quasiquote
-                       (list 'let `((vec (make-bytevector ,(sizeof spec) 0)))
+                       (list 'let `((vec ((@ (rnrs bytevectors) make-bytevector)
+                                          ,(sizeof spec) 0)))
                          (list 'unquote-splicing
                            `(map (lambda (init)
-                                   (match init ((field val)
+                                   ((@ (ice-9 match) match) init ((field val)
                                      (list (symbol-append ',name '. field '!)
                                            'vec val))))
                                  inits))

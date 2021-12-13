@@ -71,38 +71,33 @@
 ;;   (foo.y! vec 7)
 ;;   vec)
 
-;; (def-constructor 'foo foo-spec 'little #f) =>
-;; (define-syntax make-foo
-;;   (lambda (syntax)
-;;     (datum->syntax syntax)
-;;       ((@ (ice-9 match) match) (syntax->datum syntax)
-;;         ((_ . inits)
-;;           `(let ((vec ((@ (rnrs bytevectors) make-bytevector) 8 0)))
-;;              ,@(map (lambda (init)
-;;                       ((@ (ice-9 match) match) init ((field val)
-;;                         (list (symbol-append 'foo '. field '!) 'vec val))))
-;;                     inits)
-;;              vec)))))
+;; (def-constructor 'foo foo-spec #f) =>
+;; (define-macro (make-foo . inits)
+;;   (let ((vec-sym (gensym)))
+;;     `(let ((,vec-sym ((@ (rnrs bytevectors) make-bytevector) 8 0)))
+;;        ,@(map (lambda (init)
+;;                 (list
+;;                   (symbol-append 'foo '. (car init) '!) vec-sym (cadr init)))
+;;               inits)
+;;        ,vec-sym)))
 
 (define (def-constructor name spec xport?)
   (let* ((constructor-name
            (symbol-append 'make- name))
          (form
-           (list 'define-syntax constructor-name
-             (list 'lambda '(syntax)
-               (list 'datum->syntax 'syntax
-                 (list '(@ (ice-9 match) match) '(syntax->datum syntax)
-                   (list '(_ . inits)
-                     (list 'quasiquote
-                       (list 'let `((vec ((@ (rnrs bytevectors) make-bytevector)
-                                          ,(sizeof spec) 0)))
-                         (list 'unquote-splicing
-                           `(map (lambda (init)
-                                   ((@ (ice-9 match) match) init ((field val)
-                                     (list (symbol-append ',name '. field '!)
-                                           'vec val))))
-                                 inits))
-                         'vec)))))))))
+           `(define-macro (,constructor-name . inits)
+              (let ((vec-sym (gensym)))
+                ,(list 'quasiquote
+                   `(let ((,',vec-sym
+                            ((@ (rnrs bytevectors) make-bytevector)
+                             ,(sizeof spec) 0)))
+                      ,(list 'unquote-splicing
+                         `(map (lambda (init)
+                                 (list
+                                   (symbol-append ',name '. (car init) '!)
+                                   vec-sym (cadr init)))
+                               inits))
+                      ,',vec-sym))))))
     (if xport?
       `(begin ,form (export ,constructor-name))
       form)))

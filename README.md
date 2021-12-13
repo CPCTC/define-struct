@@ -54,7 +54,7 @@ Example:
   #:endianness little)
 ```
 
-#### <name>?
+#### \<name>?
 ```text
 [procedure]
   <name>? *obj* => result
@@ -76,7 +76,7 @@ Example:
   (make-bytevector 3 0)) => #f
 ```
 
-#### make-<name>
+#### make-\<name>
 ```text
 [syntax]
   make-<name> *field-spec* ... => struct
@@ -96,7 +96,7 @@ Example:
 (make-two-bytes (both 4)) => #vu8(4 0)
 ```
 
-#### <name>.<field>
+#### \<name>.\<field>
 ```text
 [procedure]
   <name>.<field> *vec* [*val*] => result
@@ -120,7 +120,7 @@ Example:
   )
 ```
 
-#### <name>.<field>!
+#### \<name>.\<field>!
 ```text
 [procedure]
   <name>.<field>! *vec* *val* => unspecified

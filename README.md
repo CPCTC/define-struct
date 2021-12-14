@@ -54,6 +54,22 @@ Example:
   #:endianness little)
 ```
 
+#### sizeof-\<name>
+```text
+[variable]
+  sizeof-<name>
+
+An integer representing the size of a <name>, in bytes. Equivalent to the return value of (bytevector-length (make-<name>)).
+```
+
+Example:
+
+```scheme
+sizeof-person => 8
+
+sizeof-two-bytes => ;; guess
+```
+
 #### \<name>?
 ```text
 [procedure]
@@ -61,7 +77,7 @@ Example:
     obj := an object
     result := an object
 
-Returns a truthy value if and only if *obj* is a bytevector of the apropriate size to be interpreted as a <name>.
+Returns a truthy value if and only if *obj* is a bytevector of size *sizeof-<name>*.
 ```
 
 Example:

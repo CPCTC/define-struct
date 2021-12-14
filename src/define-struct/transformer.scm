@@ -102,6 +102,15 @@
       `(begin ,form (export ,constructor-name))
       form)))
 
+(define (def-sizeof name spec xport?)
+  (let* ((var-name
+           (symbol-append 'sizeof- name))
+         (form
+           `(define ,var-name ,(sizeof spec))))
+    (if xport?
+      `(begin ,form (export ,var-name))
+      form)))
+
 (define transformer
   (lambda (syntax)
     (datum->syntax syntax
@@ -111,6 +120,7 @@
                                 (endianness (native-endianness)))
            (let ((spec (membs->spec membs)))
              (cons* 'begin
+               (def-sizeof name spec export?)
                (def-constructor name spec export?)
                (def-membership name spec export?)
                (fold-left
